@@ -1,3 +1,9 @@
+# How to install
+```sh
+sudo apt-get install libcgal-dev
+python -m pip install -e . -v
+```
+
 # scikit-geometry
 
 ![scikit-geometry logo](docs/source/_static/scikit-geometry.svg)
