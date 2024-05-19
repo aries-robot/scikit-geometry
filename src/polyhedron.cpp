@@ -145,6 +145,7 @@ void init_mesh(py::module &m) {
     //     })
     // ;
 
+    
     py::class_<Nef_polyhedron_3>(m, "Mesh")
         .def(py::init<>())
         .def(py::init<Nef_polyhedron_3>())

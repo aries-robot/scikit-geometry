@@ -15,11 +15,6 @@ typedef CGAL::Nef_polyhedron_3<Kernel>              Nef_polyhedron_3;
 typedef typename Kernel::Point_3                    Point_3;
 typedef CGAL::Surface_mesh<Point_3>                 Surface_mesh;
 
-typedef struct {
-    std::vector<std::vector<double>> verts;
-    std::vector<std::vector<uint32_t>> faces;
-} mesh3d;
-
 template <typename T1, typename T2>
 Polygon_with_holes_2 get_minkowski(T1 p, T2 q) {
     return CGAL::minkowski_sum_2(p, q);
@@ -42,7 +37,7 @@ mesh3d polyhedron_minkowski_sum_3(Polyhedron_3& p, Polyhedron_3& q) {
     Nef_polyhedron_3 a(p);
     Nef_polyhedron_3 b(q);
     Nef_polyhedron_3 summed = CGAL::minkowski_sum_3(a, b);
-    for (auto v = P.vertices_begin(); v != P.vertices_end(); ++v) {
+    for (auto v = summed.vertices_begin(); v != summed.vertices_end(); ++v) {
         out << "v " << v->point().x() << " " << v->point().y() << " " << v->point().z() << "\n";
     }
     return summed;
