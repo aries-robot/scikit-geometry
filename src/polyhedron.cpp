@@ -3,8 +3,12 @@
 
 #include <CGAL/Polyhedron_3.h>
 #include <CGAL/IO/Polyhedron_iostream.h>
+#include <CGAL/Surface_mesh.h>
+#include <CGAL/boost/graph/iterator.h>
+#include <vector>
+#include <CGAL/Nef_polyhedron_3.h>
 
-typedef CGAL::Polyhedron_3<Kernel>                  Polyhedron_3;
+typedef typename CGAL::Polyhedron_3<Kernel>         Polyhedron_3;
 typedef typename Polyhedron_3::Halfedge             PolyhedronHalfedge;
 typedef typename Polyhedron_3::Halfedge_handle      PolyhedronHalfedge_handle;
 typedef typename Polyhedron_3::Halfedge_iterator    PolyhedronHalfedge_iterator;
@@ -19,6 +23,12 @@ typedef typename Polyhedron_3::Point_iterator   PolyhedronPoint_iterator;
 typedef typename Polyhedron_3::Edge_iterator    PolyhedronEdge_iterator;
 typedef typename Polyhedron_3::Plane_iterator   PolyhedronPlane_iterator;
 typedef typename Kernel::Point_3 Point_3;
+
+typedef typename CGAL::Surface_mesh<Point_3> Surface_mesh;
+typedef typename CGAL::SM_Face_index Face_index;
+typedef typename CGAL::SM_Vertex_index Vertex_index;
+
+typedef typename CGAL::Nef_polyhedron_3<Kernel>              Nef_polyhedron_3;
 
 #include <iostream>
 #include "import_obj.hpp"
@@ -122,4 +132,34 @@ void init_polyhedron(py::module &m) {
     ;
 
     m.def("polyhedron_from_string", &polyhedron_from_string);
+}
+
+void init_mesh(py::module &m) {
+
+    // py::class_<Face_index>(m, "FaceIndex")
+    //     .def(py::init<>())
+    //     .def(py::init<Face_index>())
+    //     .def_property_readonly("face_index", {
+    //         CGAL::Vertex_around_face_circulator<Surface_mesh> vcirc(sm.halfedge(face_index), sm), done(vcirc);
+    //         do indices.push_back(*vcirc++); while (vcirc != done);
+    //     })
+    // ;
+
+    py::class_<Nef_polyhedron_3>(m, "Mesh")
+        .def(py::init<>())
+        .def(py::init<Nef_polyhedron_3>())
+        .def_property_readonly("vertices", [](Nef_polyhedron_3& p) { 
+            std::vector<double> verts;
+            return py::make_iterator(p->point().begin(), p->point().end()); 
+        })
+        .def_property_readonly("faces", [](Surface_mesh& p) { 
+            std::vector<uint32_t> indices;
+            for (Face_index face_index : p.faces()) {
+                CGAL::Vertex_around_face_circulator<Surface_mesh> vcirc(p.halfedge(face_index), p), done(vcirc);
+                do indices.push_back(*vcirc++); while (vcirc != done);
+            };
+            py::list indices_list = py::cast(indices);
+            return indices_list;
+        })
+    ;
 }
