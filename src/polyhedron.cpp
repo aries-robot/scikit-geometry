@@ -46,6 +46,51 @@ namespace pybind11 { namespace detail {
     CGAL_HOLDER_HELPER(PolyhedronFacet, PolyhedronFacet_handle);
 }}
 
+// A modifier creating a mesh with the incremental builder.
+template <class HDS>
+class Build_mesh : public CGAL::Modifier_base<HDS> {
+public:
+    Build_mesh(const py::array_t<double> &vertices, const py::array_t<uint32_t> &faces)
+        : mVertices(vertices), mFaces(faces) {}
+
+    void operator() (HDS& hds)
+    {
+        typedef typename HDS::Vertex   Vertex;
+        typedef typename Vertex::Point Point;
+        // Get the number of vertices and facets.
+        auto bufVertices = mVertices.request();
+        auto bufFaces = mFaces.request();
+        int numVertices = bufVertices.shape[0];
+        int numFacets = bufFaces.shape[0];
+        const double* ptrVertices = static_cast<double*>(bufVertices.ptr);
+        const uint32_t* ptrFaces = static_cast<uint32_t*>(bufFaces.ptr);
+        // Postcondition: hds is a valid polyhedral surface.
+        CGAL::Polyhedron_incremental_builder_3<HDS> B(hds, true);
+        // Load the data from arrays to HDS.
+        B.begin_surface(numVertices, numFacets, int((numVertices + numFacets - 2) * 2.1));
+        for (int i = 0; i < numVertices; ++i) {
+            double x = ptrVertices[i * 3];
+            double y = ptrVertices[i * 3 + 1];
+            double z = ptrVertices[i * 3 + 2];
+            // std::cout << "P: " << x << " " << y << " " << z << std::endl;
+            B.add_vertex(Point(x, y, z));
+        }
+        for (int i = 0; i < numFacets; ++i) {
+            B.begin_facet();
+            for (int j = 0; j < 3; ++j) {
+                uint32_t vertexIndex = ptrFaces[i * 3 + j];
+                // std::cout << "F: " << vertexIndex << std::endl;
+                B.add_vertex_to_facet(vertexIndex);
+            }
+            B.end_facet();
+        }
+        B.end_surface();
+    }
+private:
+	const py::array_t<double> mVertices;
+    const py::array_t<uint32_t> mFaces;
+};
+
 void init_polyhedron(py::module &m) {
 
     py::class_<PolyhedronVertex, PolyhedronVertex_handle>(m, "PolyhedronVertex")
@@ -71,6 +116,18 @@ void init_polyhedron(py::module &m) {
     py::class_<Polyhedron_3>(m, "Polyhedron3", Polyhedron_3_doc)
         .def(py::init<>())
         .def(py::init<Polyhedron_3>())
+        .def(py::init([](const py::array_t<double> &vertices, const py::array_t<uint32_t> &faces) {
+            if (vertices.ndim() != 2 || vertices.shape(1) != 3) {
+                throw std::runtime_error("Vertices array must have shape (Nv, 3)");
+            }
+            if (faces.ndim() != 2 || faces.shape(1) != 3) {
+                throw std::runtime_error("Faces array must have shape (Nf, 3)");
+            }
+            Polyhedron_3 P;
+            Build_mesh<Polyhedron_3::HalfedgeDS> build_mesh(vertices, faces);
+            P.delegate(build_mesh);
+            return P;
+        }))
         // .def(init<size_t, size_t, size_t, optional<const kernel&>>())
         .def("reserve", &Polyhedron_3::reserve,reserve_doc)
         .def("make_tetrahedron", (PolyhedronHalfedge_handle (Polyhedron_3::*)()) &Polyhedron_3::make_tetrahedron,make_tetrahedron_doc)

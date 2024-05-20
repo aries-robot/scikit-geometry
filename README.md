@@ -4,6 +4,12 @@ sudo apt-get install libcgal-dev
 python -m pip install -e . -v
 ```
 
+# Minkwoski Sum 3D
+```sh
+python mytest/ms_3d_test.py
+```
+WARNING!!: There must be no overlapped vertices or faces in the input meshes.
+
 # scikit-geometry
 
 ![scikit-geometry logo](docs/source/_static/scikit-geometry.svg)
