@@ -7,6 +7,7 @@
 #include <CGAL/boost/graph/iterator.h>
 #include <vector>
 #include <CGAL/Nef_polyhedron_3.h>
+#include "mesh3d.hpp"
 
 typedef typename CGAL::Polyhedron_3<Kernel>         Polyhedron_3;
 typedef typename Polyhedron_3::Halfedge             PolyhedronHalfedge;
@@ -144,23 +145,14 @@ void init_mesh(py::module &m) {
     //         do indices.push_back(*vcirc++); while (vcirc != done);
     //     })
     // ;
-
     
-    py::class_<Nef_polyhedron_3>(m, "Mesh")
-        .def(py::init<>())
-        .def(py::init<Nef_polyhedron_3>())
-        .def_property_readonly("vertices", [](Nef_polyhedron_3& p) { 
-            std::vector<double> verts;
-            return py::make_iterator(p->point().begin(), p->point().end()); 
+    py::class_<mesh3d>(m, "Mesh")
+        .def(py::init<mesh3d>())
+        .def_property_readonly("verts", [](mesh3d& p) { 
+            return p.verts; 
         })
-        .def_property_readonly("faces", [](Surface_mesh& p) { 
-            std::vector<uint32_t> indices;
-            for (Face_index face_index : p.faces()) {
-                CGAL::Vertex_around_face_circulator<Surface_mesh> vcirc(p.halfedge(face_index), p), done(vcirc);
-                do indices.push_back(*vcirc++); while (vcirc != done);
-            };
-            py::list indices_list = py::cast(indices);
-            return indices_list;
+        .def_property_readonly("faces", [](mesh3d& p) { 
+            return p.faces;
         })
     ;
 }
